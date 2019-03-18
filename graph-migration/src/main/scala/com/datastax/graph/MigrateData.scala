@@ -7,6 +7,7 @@
 package com.datastax.graph
 
 import com.datastax.bdp.graph.spark.graphframe._
+import com.datastax.bdp.graph.spark.graphframe.dsedb.NativeDseGraphFrame
 import com.datastax.bdp.graph.spark.graphframe.legacy.LegacyDseGraphFrame
 import com.datastax.bdp.graphv2.dsedb.schema.Column.{ColumnType => NativeColumnType, Type => NativeType}
 import com.datastax.bdp.graphv2.engine.GraphKeyspace
@@ -86,13 +87,11 @@ object MigrateData {
     * @param nativeGraphName target graph
     * @param spark           current spark session
     */
-  def migrateVertices(legacy: LegacyDseGraphFrame, nativeGraphName: String, spark: SparkSession): Unit = {
+  def migrateVertices(legacy: LegacyDseGraphFrame, native: NativeDseGraphFrame, spark: SparkSession): Unit = {
     val vertices = legacy.V.df
 
-    // the native graph schema, is needed to get all labels
-    val nativeKeyspace: GraphKeyspace = DseGraphFrameBuilder.keyspace(nativeGraphName, spark.sparkContext.getConf)
     // vertex labels to enumerate
-    val vertexLabels: Seq[GraphKeyspace.VertexLabel] = nativeKeyspace.vertexLabels().asScala.toSeq
+    val vertexLabels: Seq[GraphKeyspace.VertexLabel] = native.graphSchema.vertexLabels().asScala.toSeq
     val dfSchema = vertices.schema
     for (vertexLabel: GraphKeyspace.VertexLabel <- vertexLabels) {
       //prepare native vertex columns for this label
@@ -110,10 +109,8 @@ object MigrateData {
       // filter row and columns related to the given label
       val vertexDF = vertices.filter(col(DseGraphFrame.LabelColumnName) === vertexLabel.name())
         .select(propertyColumns: _*)
-      // unwrap name conflicts. i.e "_id"-> "id"
-      val cassandraDF = DseGraphFrame.fromGfNames(vertexDF)
-      // save them directly to cassandra table
-      cassandraDF.write.cassandraFormat(vertexLabel.table().name(), nativeGraphName).mode(SaveMode.Append).save()
+      // save vertices in the native graph
+      native.updateVertices(vertexLabel.name(), vertexDF)
     }
   }
 
@@ -130,15 +127,15 @@ object MigrateData {
     * @param spark           current spark session
     */
 
-  def migrateEdges(legacy: LegacyDseGraphFrame, nativeGraphName: String, spark: SparkSession): Unit = {
+  def migrateEdges(legacy: LegacyDseGraphFrame, native: NativeDseGraphFrame, spark: SparkSession): Unit = {
     // it could be good to cache edges here
     val edges = legacy.E.df
 
-    val nativeKeyspace: GraphKeyspace = DseGraphFrameBuilder.keyspace(nativeGraphName, spark.sparkContext.getConf)
     val dfSchema = edges.schema
     // enumerate all edge labels, actually triplets: out_vertex_label->edge_label->in_vertex_label
-    for (edgeLabel <- nativeKeyspace.edgeLabels().asScala.toSeq) {
+    for (edgeLabel <- native.graphSchema.edgeLabels().asScala.toSeq) {
       val outLabelName = edgeLabel.outLabel.name()
+      val edgeLabelName = edgeLabel.name()
       val inLabelName = edgeLabel.inLabel.name()
       val propertyColumns = edgeLabel.propertyKeys().asScala.map(property => {
         // legacy edge internal property "id" is mapped to native "id" column
@@ -148,7 +145,7 @@ object MigrateData {
       })
       // filter data for one native DSE-DB table
       val singleEdgeTable = edges.filter(
-        (col("~label") === edgeLabel.name()) and
+        (col("~label") === edgeLabelName) and
           col("src").startsWith(outLabelName + ":") and
           col("dst").startsWith(inLabelName + ":"))
         .select((propertyColumns :+ col("src")) :+ col("dst"): _*)
@@ -157,11 +154,9 @@ object MigrateData {
       // replace "dst" column with unpacked in_ columns
       val unpackDstTable = addEdgeIdColumns(unpackSrcTable, edgeLabel.inLabel, legacy, "dst")
 
-      // unwrap name conflicts. i.e "_id" -> "id"
-      val cassandraDF = DseGraphFrame.fromGfNames(unpackDstTable)
-      // save data directly to cassandra table
-      cassandraDF.write.cassandraFormat(edgeLabel.table().name(), nativeGraphName)
-        .mode(SaveMode.Append).save()
+      // save edges in the native graph
+      native.updateEdges(outLabelName, edgeLabelName, inLabelName, unpackDstTable)
+
     }
   }
 
@@ -180,9 +175,10 @@ object MigrateData {
 
     try {
       val legacy = spark.dseGraph(legacyGraphName).asInstanceOf[LegacyDseGraphFrame]
+      val native = spark.dseGraph(nativeGraphName).asInstanceOf[NativeDseGraphFrame]
 
-      migrateVertices(legacy, nativeGraphName, spark)
-      migrateEdges(legacy, nativeGraphName, spark)
+      migrateVertices(legacy, native, spark)
+      migrateEdges(legacy, native, spark)
 
     } catch {
       case e: Exception => {
