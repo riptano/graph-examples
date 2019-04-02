@@ -5,7 +5,9 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.Row
-
+import spray.json._
+import DefaultJsonProtocol._
+import scala.collection.mutable.ListBuffer
 
 object DataImportStateStreet {
   def main(args: Array[String]):Unit = {
@@ -179,9 +181,7 @@ object DataImportStateStreet {
     var valmonthDF:DataFrame = spark.read.format("csv").option("header", "true").schema(valmonthSchema).load(inputPath + "valmonth.csv")
     var valsDF:DataFrame = spark.read.format("csv").option("header", "true").schema(valsSchema).load(inputPath + "values.csv")
 
-    val schema = StructType(List(StructField("Element", StringType, true), StructField("Runtime(sec)", StringType, true)))
-
-    var runtimes = spark.createDataFrame(spark.sparkContext.makeRDD(List(Row(null,null))), schema).na.drop
+    val runtimes = new ListBuffer[String]()
     val totalTimeStart = System.currentTimeMillis
 
     def timeIt[T](test: String, code: => T): T = {
@@ -190,9 +190,8 @@ object DataImportStateStreet {
         code
       } finally {
         val end = System.currentTimeMillis
-        val runtimeInSec = (end - start)/1000.0
-        val newRow = spark.createDataFrame(spark.sparkContext.makeRDD(List(Row(test, runtimeInSec.toString))), schema)
-        runtimes = runtimes.union(newRow)
+        val runtimeInMillis = end - start
+        runtimes += s""""${test}": {"median": ${runtimeInMillis}}""" 
       }
     }
 
@@ -243,6 +242,7 @@ object DataImportStateStreet {
       }
 
     } else {
+
       println("\nUsing the old API")
 
       println("\nWriting valmonth vertices")
@@ -743,11 +743,13 @@ object DataImportStateStreet {
     println("\nDone writing edges")
 
     val totalTimeEnd = System.currentTimeMillis
-    val totalRuntimeInSec = (totalTimeEnd - totalTimeStart)/1000.0
-    val totalRuntimeRow = spark.createDataFrame(spark.sparkContext.makeRDD(List(Row("Total Runtime", totalRuntimeInSec.toString))), schema)
-    runtimes = runtimes.union(totalRuntimeRow)
+    val totalRuntimeInMillis = totalTimeEnd - totalTimeStart
+    runtimes += s""""Total Runtime": {"median": ${totalRuntimeInMillis}}"""
 
-    runtimes.limit(100).write.json("dgf-perf-results.json") // write runtimes to dsefs
+    val jsonStr = "{" + runtimes.mkString(",") + "}"
+    val jsonPretty = jsonStr.parseJson.prettyPrint
+    val rdd = spark.sparkContext.parallelize(Seq(jsonPretty), 1) 
+    rdd.saveAsTextFile("dgf-perf-results.json")
 
     System.exit(0)
   }
