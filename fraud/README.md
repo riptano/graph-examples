@@ -21,6 +21,46 @@ graphloader -graph fraud -address localhost fraud-mapping.groovy
 graphloader -graph fraud -address localhost fraud-mapping.groovy -inputpath ~/graph-examples/fraud/data/
 ```
 
+### DseGraphFrame and Spark loading
+
+You can also load through Spark with DseGraphFrame constructs and convenience methods.  For more in depth information about
+this method, see this blog post [Introducing Dse Graph Frames](https://www.datastax.com/dev/blog/dse-graph-frame).  For an additional
+example, see [here](https://github.com/pmehra7/dseGraphFrameLoad).
+
+Included is a [src](src) directory with the [DataImport.scala](src/main/scala/com/datastax/fraud/DataImport.scala) class that imports the data either from
+files in dsefs or from an external relational database (in this case MySql).
+
+#### Loading from files in dsefs
+
+Copy the files from the local data directory into dsefs.  Go into the dsefs shell using `dse fs` and run the following:
+
+```
+mkdir /data/
+put /local/path/to/data/customers.csv /data/
+put /local/path/to/data/orders.csv /data/
+put /local/path/to/data/sessions.csv /data/
+put /local/path/to/data/creditCards.csv /data/
+put /local/path/to/data/chargebacks.csv /data/
+put /local/path/to/data/devices.csv /data/
+put /local/path/to/data/customerOrders.csv /data/
+put /local/path/to/data/customerSessions.csv /data/
+put /local/path/to/data/customerChargebacks.csv /data/
+put /local/path/to/data/customerAddresses.csv /data/
+put /local/path/to/data/orderChargebacks.csv /data/
+```
+
+Then build the scala class with the [pom.xml](pom.xml): 
+
+```
+mvn clean package
+```
+
+Then run it with:
+
+```
+dse spark-submit --class com.datastax.fraud.DataImport target/data-import-1.0-SNAPSHOT.jar
+```
+
 ## Scenarios
 
 - [Scenario 1](#scenario1): Legitimate - User registers and eventually places a order
