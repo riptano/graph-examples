@@ -4,31 +4,45 @@
 ## Generate Native Graph Schema
 Graph Schema Migration tool creates legacy graph frame. Based on legacy graph frame schema, the tool generates native graph schema.
 
-There are two types of schema, cql and gremlin formats. Cql format schema is the CQL script to create graph keyspace and
-tables. Gremlin format is native graph schema.
-Run the following command to generate native graph schema
+There are two types of format when outputting the schema, cql and gremlin.
+Cql format schema is the CQL script to create graph keyspace and tables under cqlsh.
+Gremlin format schema is the groovy script to create native graph schema under gremlin-console or Studio.
+
+Run the following command to output the native graph schema generation script when the DSE server is up:
 ```
-dse graph-migrate-schema -cql|-gremlin <legacy_graph> <native_graph>
+dse graph-migrate-schema [-cql | -gremlin] <legacy_graph> <native_graph>
 ```
 
-All properties are single. Multi properties are migrated as a single property. Meta properties, Index and MVs are are
-dropped. If custom handling of meta properties and multi properties, renaming properties and dropping properties are
-needed, user should modify the generated native graph schema. The native graph schema can be created through cqlsh or
-gremlin.
+- `-cql`: specifies the output as cql format.
+- `-gremlin`: specifies the output as gremlin format.
+- `<legacy_graph>`: the name of the existing legacy graph you would like to migrate from.
+- `<native_graph>`: the name of the new native graph you would like to create.
 
-Then pass generated schema to cqlsh or gremlin-console depends on the type
+Please note that the following are NOT supported:
+- Meta properties
+- Multi properties
+- Indexes
+
+All properties are single. Multi properties are migrated as a single property. Meta properties, Indexes, and MVs are dropped.
+If custom handling of meta and multi properties is needed, users should modify the generated native graph schema accordingly, some properties may need to be renamed or dropped.
+
+To save the generated output as a script into a file, you may run the following:
+```
+dse graph-migrate-schema -gremlin reviewerRating nreviewerRating > native_schema.groovy
+```
+
+To create the native graph schema, pass the generated script to gremlin-console or cqlsh depending on the type of format.
 
 Example:
 ```
-dse graph-migrate-schema -gremlin reviewerRating nreviewerRating > native_schema.groovy
 dse gremlin-console -e native_schema.groovy
 ```
 
 ## Migrate Data
 
-Provided script is just an example of the data migration process.
-It should work as is, if new native schema was generated with previous step and was applied without 
-modifications. 
+The following provided script is just an example of the data migration process.
+
+Please note that if you have modified the generated schema in the previous step, you should modify the migration script accordingly. See "Development notes" for more information.
 
 build:
 ```
@@ -40,20 +54,27 @@ and then submit to Spark:
 dse spark-submit target/scala-2.11/graph-migration_2.11-0.1.jar <legacy_graph> <native_graph>
 ```
 
-
 Example:
 ```
 dse spark-submit target/scala-2.11/graph-migration_2.11-0.1.jar reviewerRating nreviewerRating
 ```
+
 ### Development notes
 
-The migration tool use spark-cassandra-connector to directly write data to DSE-DB. It enumerates native vertex labels, 
-select proper rows from legacy DGF vertices and write them to  appropriate tables. See `migrateVertices()` method
-Then the tool enumerate native edge labels, extract (inLabel, edgeLabel, outLabel) triplet from it, select proper rows
-from legacy DGF edges, convert edge ids into native format and write data to corresponded table. See `migrateEdges()` method.
-`handleMultiAndMetaProperies()` method is expected to be overridden to properly migrate multi and meta properties
-    by default it just drops all  metadata and select the first of multi properties.                                  
-`getLegacyPropertyName()` should be overridden if property names was manually changed in the schema generate by the 
-   `graph-migrate-schema`
-   
- 
+Reference: [com.datastax.graph.MigrateData](src/main/scala/com/datastax/graph/MigrateData.scala)
+
+- `migrateVertices()`
+
+  This method enumerates native vertex labels, selects proper rows from legacy DGF vertices and writes them to appropriate tables.
+
+- `migrateEdges()`
+
+  This method enumerates native edge labels, extracts (inLabel, edgeLabel, outLabel) triplet from it, selects proper rows from legacy DGF edges, converts edge ids into the native format and writes data to the corresponded table.
+
+- `handleMultiAndMetaProperies()`
+
+  This method is expected to be overridden to properly migrate multi and meta properties. By default, it just drops all metadata and selects the first multi properties.
+
+- `getLegacyPropertyName()`
+
+  This method should be overridden if the property name was manually changed in the schema generated by the `graph-migrate-schema`.
