@@ -7,7 +7,8 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.Row
 import spray.json._
 import DefaultJsonProtocol._
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
+import scala.util.parsing.json.JSONObject
 
 object DataImportStateStreet {
   def main(args: Array[String]):Unit = {
@@ -181,7 +182,7 @@ object DataImportStateStreet {
     var valmonthDF:DataFrame = spark.read.format("csv").option("header", "true").schema(valmonthSchema).load(inputPath + "valmonth.csv")
     var valsDF:DataFrame = spark.read.format("csv").option("header", "true").schema(valsSchema).load(inputPath + "values.csv")
 
-    val runtimes = new ListBuffer[String]()
+    var metrics = Map[String, Map[String, Double]]()
     val totalTimeStart = System.currentTimeMillis
 
     def timeIt[T](test: String, code: => T): T = {
@@ -191,7 +192,7 @@ object DataImportStateStreet {
       } finally {
         val end = System.currentTimeMillis
         val runtimeInMillis = end - start
-        runtimes += s""""${test}": {"median": ${runtimeInMillis}}""" 
+        metrics += (s"${test}" -> Map("median" -> runtimeInMillis))
       }
     }
 
@@ -744,11 +745,11 @@ object DataImportStateStreet {
 
     val totalTimeEnd = System.currentTimeMillis
     val totalRuntimeInMillis = totalTimeEnd - totalTimeStart
-    runtimes += s""""Total Runtime": {"median": ${totalRuntimeInMillis}}"""
+    metrics += ("Total Runtime" -> Map("median" -> totalRuntimeInMillis))
 
-    val jsonStr = "{" + runtimes.mkString(",") + "}"
+    val jsonStr = JSONObject(metrics.toMap).toString()
     val jsonPretty = jsonStr.parseJson.prettyPrint
-    val rdd = spark.sparkContext.parallelize(Seq(jsonPretty), 1) 
+    val rdd = spark.sparkContext.parallelize(Seq(jsonPretty), 1)
     rdd.saveAsTextFile("dgf-perf-results.json")
 
     System.exit(0)
