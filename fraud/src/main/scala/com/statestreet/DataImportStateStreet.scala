@@ -192,8 +192,15 @@ object DataImportStateStreet {
       } finally {
         val end = System.currentTimeMillis
         val runtimeInMillis = end - start
-        metrics += (s"${test}" -> Map("median" -> runtimeInMillis))
+        metrics += (test -> Map("median" -> runtimeInMillis))
       }
+    }
+
+    def getThroughput(test: String, countCode: => Long): Unit = {
+      val runtimeInMillis = metrics get test get "median"
+      val count = countCode
+      val throughput = count / (runtimeInMillis * 0.001)
+      metrics(test) += ("throughput" -> throughput)
     }
 
     // Write out vertices
@@ -202,9 +209,11 @@ object DataImportStateStreet {
 
       println("\nWriting valmonth vertices")
       timeIt("valmonth vertices", g.updateVertices("valmonth", valmonthDF))
+      getThroughput("valmonth vertices", g.V().hasLabel("valmonth").count().next())
 
       println("\nWriting values vertices")
       timeIt("values vertices", g.updateVertices("vals", valsDF))
+      getThroughput("values vertices", g.V().hasLabel("vals").count().next())
 
       if (runFullTest) {
         println("\nWriting superparent vertices")
@@ -417,6 +426,7 @@ object DataImportStateStreet {
           col("connect_date")
         )
       ))
+      getThroughput("valmonth vals edges", g.E().hasLabel("valmonth_vals").count().next())
 
       if (runFullTest) {
         println("\nWriting childitem valyear edges")
