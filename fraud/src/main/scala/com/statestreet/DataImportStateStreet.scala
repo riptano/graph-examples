@@ -757,7 +757,8 @@ object DataImportStateStreet {
     val totalRuntimeInMillis = totalTimeEnd - totalTimeStart
     metrics += ("Total Runtime" -> Map("median" -> totalRuntimeInMillis))
 
-    val jsonStr = JSONObject(metrics.toMap).toString()
+    val jsonStrs = metrics map {case (test, testMetrics) => "\"" + test + "\": " + JSONObject(testMetrics.toMap).toString()}
+    val jsonStr = "{" + jsonStrs.mkString(", ") + "}"
     val jsonPretty = jsonStr.parseJson.prettyPrint
     val rdd = spark.sparkContext.parallelize(Seq(jsonPretty), 1)
     rdd.saveAsTextFile("dgf-perf-results.json")
