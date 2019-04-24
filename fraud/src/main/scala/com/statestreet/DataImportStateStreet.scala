@@ -7,7 +7,8 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.Row
 import spray.json._
 import DefaultJsonProtocol._
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
+import scala.util.parsing.json.JSONObject
 
 object DataImportStateStreet {
   def main(args: Array[String]):Unit = {
@@ -181,7 +182,7 @@ object DataImportStateStreet {
     var valmonthDF:DataFrame = spark.read.format("csv").option("header", "true").schema(valmonthSchema).load(inputPath + "valmonth.csv")
     var valsDF:DataFrame = spark.read.format("csv").option("header", "true").schema(valsSchema).load(inputPath + "values.csv")
 
-    val runtimes = new ListBuffer[String]()
+    var metrics = Map[String, Map[String, Double]]()
     val totalTimeStart = System.currentTimeMillis
 
     def timeIt[T](test: String, code: => T): T = {
@@ -191,8 +192,15 @@ object DataImportStateStreet {
       } finally {
         val end = System.currentTimeMillis
         val runtimeInMillis = end - start
-        runtimes += s""""${test}": {"median": ${runtimeInMillis}}""" 
+        metrics += (test -> Map("median" -> runtimeInMillis))
       }
+    }
+
+    def getThroughput(test: String, countCode: => Long): Unit = {
+      val runtimeInMillis = metrics get test get "median"
+      val count = countCode
+      val throughput = count / (runtimeInMillis * 0.001)
+      metrics(test) += ("throughput" -> throughput)
     }
 
     // Write out vertices
@@ -201,43 +209,56 @@ object DataImportStateStreet {
 
       println("\nWriting valmonth vertices")
       timeIt("valmonth vertices", g.updateVertices("valmonth", valmonthDF))
+      getThroughput("valmonth vertices", g.V().hasLabel("valmonth").count().next())
 
       println("\nWriting values vertices")
       timeIt("values vertices", g.updateVertices("vals", valsDF))
+      getThroughput("values vertices", g.V().hasLabel("vals").count().next())
 
       if (runFullTest) {
         println("\nWriting superparent vertices")
         timeIt("superparent vertices", g.updateVertices("superparent", superparentDF))
+        getThroughput("superparent vertices", g.V().hasLabel("superparent").count().next())
 
         println("\nWriting parent vertices")
         timeIt("parent vertices", g.updateVertices("parent", parentDF))
+        getThroughput("parent vertices", g.V().hasLabel("parent").count().next())
 
         println("\nWriting semiparent vertices")
         timeIt("semiparent vertices", g.updateVertices("semiparent", semiparentDF))
+        getThroughput("semiparent vertices", g.V().hasLabel("semiparent").count().next())
 
         println("\nWriting subparent vertices")
         timeIt("subparent vertices", g.updateVertices("subparent", subparentDF))
+        getThroughput("subparent vertices", g.V().hasLabel("subparent").count().next())
 
         println("\nWriting topchild vertices")
         timeIt("topchild vertices", g.updateVertices("topchild", topchildDF))
+        getThroughput("topchild vertices", g.V().hasLabel("topchild").count().next())
 
         println("\nWriting childnums vertices")
         timeIt("childnums vertices", g.updateVertices("childnums", childnumsDF))
+        getThroughput("childnums vertices", g.V().hasLabel("childnums").count().next())
 
         println("\nWriting numsyear vertices")
         timeIt("numsyear vertices", g.updateVertices("numsyear", numsyearDF))
+        getThroughput("numsyear vertices", g.V().hasLabel("numsyear").count().next())
 
         println("\nWriting numsmonth vertices")
         timeIt("numsmonth vertices", g.updateVertices("numsmonth", numsmonthDF))
+        getThroughput("numsmonth vertices", g.V().hasLabel("numsmonth").count().next())
 
         println("\nWriting nums vertices")
         timeIt("nums vertices", g.updateVertices("nums", numsDF))
+        getThroughput("nums vertices", g.V().hasLabel("nums").count().next())
 
         println("\nWriting childitem vertices")
         timeIt("childitem vertices", g.updateVertices("childitem", childitemDF))
+        getThroughput("childitem vertices", g.V().hasLabel("childitem").count().next())
 
         println("\nWriting valyear vertices")
         timeIt("valyear vertices", g.updateVertices("valyear", valyearDF))
+        getThroughput("valyear vertices", g.V().hasLabel("valyear").count().next())
 
       }
 
@@ -247,43 +268,56 @@ object DataImportStateStreet {
 
       println("\nWriting valmonth vertices")
       timeIt("valmonth vertices", g.updateVertices(valmonthDF.withColumn(labelStr, lit("valmonth")), Seq("valmonth"), cache))
+      getThroughput("valmonth vertices", g.V().hasLabel("valmonth").count().next())
 
       println("\nWriting values vertices")
       timeIt("values vertices", g.updateVertices(valsDF.withColumn(labelStr, lit("vals")), Seq("vals"), cache))
+      getThroughput("values vertices", g.V().hasLabel("vals").count().next())
 
       if (runFullTest) {
         println("\nWriting superparent vertices")
         timeIt("superparent vertices", g.updateVertices(superparentDF.withColumn(labelStr, lit("superparent")), Seq("superparent"), cache))
+        getThroughput("superparent vertices", g.V().hasLabel("superparent").count().next())
 
         println("\nWriting parent vertices")
         timeIt("parent vertices", g.updateVertices(parentDF.withColumn(labelStr, lit("parent")), Seq("parent"), cache))
+        getThroughput("parent vertices", g.V().hasLabel("parent").count().next())
 
         println("\nWriting semiparent vertices")
         timeIt("semiparent vertices", g.updateVertices(semiparentDF.withColumn(labelStr, lit("semiparent")), Seq("semiparent"), cache))
+        getThroughput("semiparent vertices", g.V().hasLabel("semiparent").count().next())
 
         println("\nWriting subparent vertices")
         timeIt("subparent vertices", g.updateVertices(subparentDF.withColumn(labelStr, lit("subparent")), Seq("subparent"), cache))
+        getThroughput("subparent vertices", g.V().hasLabel("subparent").count().next())
 
         println("\nWriting topchild vertices")
         timeIt("topchild vertices", g.updateVertices(topchildDF.withColumn(labelStr, lit("topchild")), Seq("topchild"), cache))
+        getThroughput("topchild vertices", g.V().hasLabel("topchild").count().next())
 
         println("\nWriting childnums vertices")
         timeIt("childnums vertices", g.updateVertices(childnumsDF.withColumn(labelStr, lit("childnums")), Seq("childnums"), cache))
+        getThroughput("childnums vertices", g.V().hasLabel("childnums").count().next())
 
         println("\nWriting numsyear vertices")
         timeIt("numsyear vertices", g.updateVertices(numsyearDF.withColumn(labelStr, lit("numsyear")), Seq("numsyear"), cache))
+        getThroughput("numsyear vertices", g.V().hasLabel("numsyear").count().next())
 
         println("\nWriting numsmonth vertices")
         timeIt("numsmonth vertices", g.updateVertices(numsmonthDF.withColumn(labelStr, lit("numsmonth")), Seq("numsmonth"), cache))
+        getThroughput("numsmonth vertices", g.V().hasLabel("numsmonth").count().next())
 
         println("\nWriting nums vertices")
         timeIt("nums vertices", g.updateVertices(numsDF.withColumn(labelStr, lit("nums")), Seq("nums"), cache))
+        getThroughput("nums vertices", g.V().hasLabel("nums").count().next())
 
         println("\nWriting childitem vertices")
         timeIt("childitem vertices", g.updateVertices(childitemDF.withColumn(labelStr, lit("childitem")), Seq("childitem"), cache))
+        getThroughput("childitem vertices", g.V().hasLabel("childitem").count().next())
 
         println("\nWriting valyear vertices")
         timeIt("valyear vertices", g.updateVertices(valyearDF.withColumn(labelStr, lit("valyear")), Seq("valyear"), cache))
+        getThroughput("valyear vertices", g.V().hasLabel("valyear").count().next())
 
       }
 
@@ -416,6 +450,7 @@ object DataImportStateStreet {
           col("connect_date")
         )
       ))
+      getThroughput("valmonth vals edges", g.E().hasLabel("valmonth_vals").count().next())
 
       if (runFullTest) {
         println("\nWriting childitem valyear edges")
@@ -429,6 +464,7 @@ object DataImportStateStreet {
             col("connect_year")
           )
         ))
+        getThroughput("childitem valyear edges", g.E().hasLabel("childitem_valyear").count().next())
 
         println("\nWriting childnums childitem edges")
         timeIt("childnums childitem edges", g.updateEdges(
@@ -441,6 +477,7 @@ object DataImportStateStreet {
             col("connect_date")
           )
         ))
+        getThroughput("childnums childitem edges", g.E().hasLabel("childnums_childitem").count().next())
 
         println("\nWriting childnums numsyear edges")
         timeIt("childnums numsyear edges", g.updateEdges(
@@ -453,6 +490,7 @@ object DataImportStateStreet {
             col("connect_year")
           )
         ))
+        getThroughput("childnums numsyear edges", g.E().hasLabel("childnums_numsyear").count().next())
 
         println("\nWriting numsmonth nums edges")
         timeIt("numsmonth nums edges", g.updateEdges(
@@ -465,6 +503,7 @@ object DataImportStateStreet {
             col("connect_date")
           )
         ))
+        getThroughput("numsmonth nums edges", g.E().hasLabel("numsmonth_nums").count().next())
 
         println("\nWriting numsyear numsmonth edges")
         timeIt("numsyear numsmonth edges", g.updateEdges(
@@ -477,6 +516,7 @@ object DataImportStateStreet {
             col("connect_month")
           )
         ))
+        getThroughput("numsyear numsmonth edges", g.E().hasLabel("numsyear_numsmonth").count().next())
 
         println("\nWriting parent semiparent edges")
         timeIt("parent semiparent edges", g.updateEdges(
@@ -489,6 +529,7 @@ object DataImportStateStreet {
             col("connect_date")
           )
         ))
+        getThroughput("parent semiparent edges", g.E().hasLabel("parent_semiparent").count().next())
 
         println("\nWriting semiparent subparent edges")
         timeIt("semiparent subparent edges", g.updateEdges(
@@ -501,6 +542,7 @@ object DataImportStateStreet {
             col("connect_date")
           )
         ))
+        getThroughput("semiparent subparent edges", g.E().hasLabel("semiparent_subparent").count().next())
 
         println("\nWriting subparent topchild edges")
         timeIt("subparent topchild edges", g.updateEdges(
@@ -513,6 +555,7 @@ object DataImportStateStreet {
             col("connect_date")
           )
         ))
+        getThroughput("subparent topchild edges", g.E().hasLabel("subparent_topchild").count().next())
 
         println("\nWriting superparent parent edges")
         timeIt("superparent parent edges", g.updateEdges(
@@ -525,6 +568,7 @@ object DataImportStateStreet {
             col("connect_date")
           )
         ))
+        getThroughput("superparent parent edges", g.E().hasLabel("superparent_parent").count().next())
 
         println("\nWriting topchild childnums edges")
         timeIt("topchild childnums edges", g.updateEdges(
@@ -537,6 +581,7 @@ object DataImportStateStreet {
             col("connect_date")
           )
         ))
+        getThroughput("topchild childnums edges", g.E().hasLabel("topchild_childnums").count().next())
 
         println("\nWriting valyear valmonth edges")
         timeIt("valyear valmonth edges", g.updateEdges(
@@ -549,6 +594,7 @@ object DataImportStateStreet {
             col("connect_month")
           )
         ))
+        getThroughput("valyear valmonth edges", g.E().hasLabel("valyear_valmonth").count().next())
 
       }
 
@@ -569,6 +615,7 @@ object DataImportStateStreet {
         col("edgeLabel") as labelStr,
         col("connect_date")
       ), cache))
+      getThroughput("valmonth vals edges", g.E().hasLabel("valmonth_vals").count().next())
 
       if (runFullTest) {
         println("\nWriting childitem valyear edges")
@@ -585,6 +632,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_year")
         ), cache))
+        getThroughput("childitem valyear edges", g.E().hasLabel("childitem_valyear").count().next())
 
         println("\nWriting childnums childitem edges")
         var childnums_childitem_edges = childnums_childitem_df.withColumn("srcLabel", lit("childnums")).withColumn("dstLabel", lit("childitem")).withColumn("edgeLabel", lit("childnums_childitem"))
@@ -600,6 +648,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_date")
         ), cache))
+        getThroughput("childnums childitem edges", g.E().hasLabel("childnums_childitem").count().next())
 
         println("\nWriting childnums numsyear edges")
         var childnums_numsyear_edges = childnums_numsyear_df.withColumn("srcLabel", lit("childnums")).withColumn("dstLabel", lit("numsyear")).withColumn("edgelabel", lit("childnums_numsyear"))
@@ -615,6 +664,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_year")
         ), cache))
+        getThroughput("childnums numsyear edges", g.E().hasLabel("childnums_numsyear").count().next())
 
         println("\nWriting numsmonth nums edges")
         var numsmonth_nums_edges = numsmonth_nums_df.withColumn("srcLabel", lit("numsmonth")).withColumn("dstLabel", lit("nums")).withColumn("edgelabel", lit("numsmonth_nums"))
@@ -630,6 +680,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_date")
         ), cache))
+        getThroughput("numsmonth nums edges", g.E().hasLabel("numsmonth_nums").count().next())
 
         println("\nWriting numsyear numsmonth edges")
         var numsyear_numsmonth_edges = numsyear_numsmonth_df.withColumn("srcLabel", lit("numsyear")).withColumn("dstLabel", lit("numsmonth")).withColumn("edgeLabel", lit("numsyear_numsmonth"))
@@ -645,6 +696,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_month")
         ), cache))
+        getThroughput("numsyear numsmonth edges", g.E().hasLabel("numsyear_numsmonth").count().next())
 
         println("\nWriting parent semiparent edges")
         val parent_semiparent_edges = parent_semiparent_df.withColumn("srcLabel", lit("parent")).withColumn("dstLabel", lit("semiparent")).withColumn("edgeLabel", lit("parent_semiparent"))
@@ -660,6 +712,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_date")
         ), cache))
+        getThroughput("parent semiparent edges", g.E().hasLabel("parent_semiparent").count().next())
 
         println("\nWriting semiparent subparent edges")
         val semiparent_subparent_edges = semiparent_subparent_df.withColumn("srcLabel", lit("semiparent")).withColumn("dstLabel", lit("subparent")).withColumn("edgeLabel", lit("semiparent_subparent"))
@@ -675,6 +728,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_date")
         ), cache))
+        getThroughput("semiparent subparent edges", g.E().hasLabel("semiparent_subparent").count().next())
 
         println("\nWriting subparent topchild edges")
         val subparent_topchild_edges = subparent_topchild_df.withColumn("srcLabel", lit("subparent")).withColumn("dstLabel", lit("topchild")).withColumn("edgeLabel", lit("subparent_topchild"))
@@ -690,6 +744,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_date")
         ), cache))
+        getThroughput("subparent topchild edges", g.E().hasLabel("subparent_topchild").count().next())
 
         println("\nWriting superparent parent edges")
         val superparent_parent_edges = superparent_parent_df.withColumn("srcLabel", lit("superparent")).withColumn("dstLabel", lit("parent")).withColumn("edgeLabel", lit("superparent_parent"))
@@ -705,6 +760,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_date")
         ), cache))
+        getThroughput("superparent parent edges", g.E().hasLabel("superparent_parent").count().next())
 
         println("\nWriting topchild childnums edges")
         val topchild_childnums_edges = topchild_childnums_df.withColumn("srcLabel", lit("topchild")).withColumn("dstLabel", lit("childnums")).withColumn("edgeLabel", lit("topchild_childnums"))
@@ -720,6 +776,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_date")
         ), cache))
+        getThroughput("topchild childnums edges", g.E().hasLabel("topchild_childnums").count().next())
 
         println("\nWriting valyear valmonth edges")
         var valyear_valmonth_edges = valyear_valmonth_df.withColumn("srcLabel", lit("valyear")).withColumn("dstLabel", lit("valmonth")).withColumn("edgeLabel", lit("valyear_valmonth"))
@@ -735,6 +792,7 @@ object DataImportStateStreet {
           col("edgeLabel") as labelStr,
           col("connect_month")
         ), cache))
+        getThroughput("valyear valmonth edges", g.E().hasLabel("valyear_valmonth").count().next())
 
       }
 
@@ -744,11 +802,12 @@ object DataImportStateStreet {
 
     val totalTimeEnd = System.currentTimeMillis
     val totalRuntimeInMillis = totalTimeEnd - totalTimeStart
-    runtimes += s""""Total Runtime": {"median": ${totalRuntimeInMillis}}"""
+    metrics += ("Total Runtime" -> Map("median" -> totalRuntimeInMillis))
 
-    val jsonStr = "{" + runtimes.mkString(",") + "}"
+    val jsonStrs = metrics map {case (test, testMetrics) => "\"" + test + "\": " + JSONObject(testMetrics.toMap).toString()}
+    val jsonStr = "{" + jsonStrs.mkString(", ") + "}"
     val jsonPretty = jsonStr.parseJson.prettyPrint
-    val rdd = spark.sparkContext.parallelize(Seq(jsonPretty), 1) 
+    val rdd = spark.sparkContext.parallelize(Seq(jsonPretty), 1)
     rdd.saveAsTextFile("dgf-perf-results.json")
 
     System.exit(0)
