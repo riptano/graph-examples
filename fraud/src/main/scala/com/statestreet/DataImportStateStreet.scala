@@ -1,6 +1,8 @@
 package com.statestreet
 
 import com.datastax.bdp.graph.spark.graphframe._
+import com.datastax.spark.connector.cql.CassandraConnector
+import com.datastax.driver.core.VersionNumber
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
@@ -45,6 +47,18 @@ object DataImportStateStreet {
       .appName("Data Import Application")
       .enableHiveSupport()
       .getOrCreate()
+
+    val dseVersion = CassandraConnector(spark.sparkContext.getConf).withSessionDo { session => session.getState().getConnectedHosts().stream().findFirst().get().getDseVersion() }
+
+    // DSP-18620
+    // the schema does not have edges between vertices of the same label
+    def getEdgeVertexIdColumnName(vertexLabel: String, direction: String): String = {
+      if (dseVersion.nextStable().compareTo(VersionNumber.parse("6.8.0")) < 0) {
+        s"${direction}_${vertexLabel}_id"
+      } else {
+        s"${vertexLabel}_${vertexLabel}_id"
+      }
+    }
 
     val g = spark.dseGraph(graphName)
 
@@ -445,8 +459,8 @@ object DataImportStateStreet {
         "valmonth_vals",
         "vals",
         valmonth_vals_df.select(
-          col("childitem_id") as "out_valmonth_id",
-          col("vals_id") as "in_vals_id",
+          col("childitem_id") as getEdgeVertexIdColumnName("valmonth", "out"),
+          col("vals_id") as getEdgeVertexIdColumnName("vals", "in"),
           col("connect_date")
         )
       ))
@@ -459,8 +473,8 @@ object DataImportStateStreet {
           "childitem_valyear",
           "valyear",
           childitem_valyear_df.select(
-            col("childitem_id") as "out_childitem_id",
-            col("valyear_id") as "in_valyear_id",
+            col("childitem_id") as getEdgeVertexIdColumnName("childitem", "out"),
+            col("valyear_id") as getEdgeVertexIdColumnName("valyear", "in"),
             col("connect_year")
           )
         ))
@@ -472,8 +486,8 @@ object DataImportStateStreet {
           "childnums_childitem",
           "childitem",
           childnums_childitem_df.select(
-            col("childnums_id") as "out_childnums_id",
-            col("childitem_id") as "in_childitem_id",
+            col("childnums_id") as getEdgeVertexIdColumnName("childnums", "out"),
+            col("childitem_id") as getEdgeVertexIdColumnName("childitem", "in"),
             col("connect_date")
           )
         ))
@@ -485,8 +499,8 @@ object DataImportStateStreet {
           "childnums_numsyear",
           "numsyear",
           childnums_numsyear_df.select(
-            col("childnums_id") as "out_childnums_id",
-            col("numsyear_id") as "in_numsyear_id",
+            col("childnums_id") as getEdgeVertexIdColumnName("childnums", "out"),
+            col("numsyear_id") as getEdgeVertexIdColumnName("numsyear", "in"),
             col("connect_year")
           )
         ))
@@ -498,8 +512,8 @@ object DataImportStateStreet {
           "numsmonth_nums",
           "nums",
           numsmonth_nums_df.select(
-            col("numsmonth_id") as "out_numsmonth_id",
-            col("nums_id") as "in_nums_id",
+            col("numsmonth_id") as getEdgeVertexIdColumnName("numsmonth", "out"),
+            col("nums_id") as getEdgeVertexIdColumnName("nums", "in"),
             col("connect_date")
           )
         ))
@@ -511,8 +525,8 @@ object DataImportStateStreet {
           "numsyear_numsmonth",
           "numsmonth",
           numsyear_numsmonth_df.select(
-            col("numsyear_id") as "out_numsyear_id",
-            col("numsmonth_id") as "in_numsmonth_id",
+            col("numsyear_id") as getEdgeVertexIdColumnName("numsyear", "out"),
+            col("numsmonth_id") as getEdgeVertexIdColumnName("numsmonth", "in"),
             col("connect_month")
           )
         ))
@@ -524,8 +538,8 @@ object DataImportStateStreet {
           "parent_semiparent",
           "semiparent",
           parent_semiparent_df.select(
-            col("parent_id") as "out_parent_id",
-            col("semiparent_id") as "in_semiparent_id",
+            col("parent_id") as getEdgeVertexIdColumnName("parent", "out"),
+            col("semiparent_id") as getEdgeVertexIdColumnName("semiparent", "in"),
             col("connect_date")
           )
         ))
@@ -537,8 +551,8 @@ object DataImportStateStreet {
           "semiparent_subparent",
           "subparent",
           semiparent_subparent_df.select(
-            col("semiparent_id") as "out_semiparent_id",
-            col("subparent_id") as "in_subparent_id",
+            col("semiparent_id") as getEdgeVertexIdColumnName("semiparent", "out"),
+            col("subparent_id") as getEdgeVertexIdColumnName("subparent", "in"),
             col("connect_date")
           )
         ))
@@ -550,8 +564,8 @@ object DataImportStateStreet {
           "subparent_topchild",
           "topchild",
           subparent_topchild_df.select(
-            col("subparent_id") as "out_subparent_id",
-            col("topchild_id") as "in_topchild_id",
+            col("subparent_id") as getEdgeVertexIdColumnName("subparent", "out"),
+            col("topchild_id") as getEdgeVertexIdColumnName("topchild", "in"),
             col("connect_date")
           )
         ))
@@ -563,8 +577,8 @@ object DataImportStateStreet {
           "superparent_parent",
           "parent",
           superparent_parent_df.select(
-            col("superparent_id") as "out_superparent_id",
-            col("parent_id") as "in_parent_id",
+            col("superparent_id") as getEdgeVertexIdColumnName("superparent", "out"),
+            col("parent_id") as getEdgeVertexIdColumnName("parent", "in"),
             col("connect_date")
           )
         ))
@@ -576,8 +590,8 @@ object DataImportStateStreet {
           "topchild_childnums",
           "childnums",
           topchild_childnums_df.select(
-            col("topchild_id") as "out_topchild_id",
-            col("childnums_id") as "in_childnums_id",
+            col("topchild_id") as getEdgeVertexIdColumnName("topchild", "out"),
+            col("childnums_id") as getEdgeVertexIdColumnName("childnums", "in"),
             col("connect_date")
           )
         ))
@@ -589,8 +603,8 @@ object DataImportStateStreet {
           "valyear_valmonth",
           "valmonth",
           valyear_valmonth_df.select(
-            col("valyear_id") as "out_valyear_id",
-            col("valmonth_id") as "in_valmonth_id",
+            col("valyear_id") as getEdgeVertexIdColumnName("valyear", "out"),
+            col("valmonth_id") as getEdgeVertexIdColumnName("valmonth", "in"),
             col("connect_month")
           )
         ))
