@@ -5,7 +5,7 @@
 // user should modify the generated native graph schema. The native graph schema can be created through cqlsh or gremlin.
 import com.datastax.bdp.graphv2.engine.Engine
 
-system.graph('statestreet').withReplication("{ 'class' : 'org.apache.cassandra.locator.NetworkTopologyStrategy', 'SearchGraphAnalytics': '1' }").andDurableWrites(true).using(Native).create()
+system.graph('statestreet').withReplication("{ 'class' : 'org.apache.cassandra.locator.NetworkTopologyStrategy', 'SearchGraphAnalytics': '1' }").andDurableWrites(true).create()
 
 :remote config alias g statestreet.g
 
