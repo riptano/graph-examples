@@ -1,5 +1,5 @@
 // set RF=1 due to limited space
-system.graph('statestreet').replication("{'class' : 'NetworkTopologyStrategy', 'SearchGraphAnalytics' : 1}").systemReplication("{'class' : 'NetworkTopologyStrategy', 'SearchGraphAnalytics' : 1}").legacyEngine().create()
+system.graph('statestreet').replication("{'class' : 'NetworkTopologyStrategy', 'SearchGraphAnalytics' : 1}").systemReplication("{'class' : 'NetworkTopologyStrategy', 'SearchGraphAnalytics' : 1}").engine(Classic).create()
 :remote config alias g statestreet.g
 
 schema.propertyKey('superparent_id').Int().single().ifNotExists().create()
