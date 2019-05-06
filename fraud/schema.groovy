@@ -1,4 +1,4 @@
-system.graph('fraud').ifNotExists().create()
+system.graph('fraud').ifNotExists().engine(Classic).create()
 :remote config alias g fraud.g
 
 // Property keys
