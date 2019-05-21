@@ -1,8 +1,8 @@
-# Migrate Legacy Graph to Native Graph
+# Migrate Classic Graph to Native Graph
 
 
 ## Generate Native Graph Schema
-Graph Schema Migration tool creates legacy graph frame. Based on legacy graph frame schema, the tool generates native graph schema.
+Graph Schema Migration tool creates classic graph frame. Based on classic graph frame schema, the tool generates native graph schema.
 
 There are two types of format when outputting the schema, cql and gremlin.
 Cql format schema is the CQL script to create graph keyspace and tables under cqlsh.
@@ -10,12 +10,12 @@ Gremlin format schema is the groovy script to create native graph schema under g
 
 Run the following command to output the native graph schema generation script when the DSE server is up:
 ```
-dse graph-migrate-schema [-cql | -gremlin] <legacy_graph> <native_graph>
+dse graph-migrate-schema [-cql | -gremlin] <classic_graph> <native_graph>
 ```
 
 - `-cql`: specifies the output as cql format.
 - `-gremlin`: specifies the output as gremlin format.
-- `<legacy_graph>`: the name of the existing legacy graph you would like to migrate from.
+- `<classic_graph>`: the name of the existing classic graph you would like to migrate from.
 - `<native_graph>`: the name of the new native graph you would like to create.
 
 Please note that the following are NOT supported:
@@ -51,7 +51,7 @@ sbt package
 
 and then submit to Spark:
 ```
-dse spark-submit target/scala-2.11/graph-migration_2.11-0.1.jar <legacy_graph> <native_graph>
+dse spark-submit target/scala-2.11/graph-migration_2.11-0.1.jar <classic_graph> <native_graph>
 ```
 
 Example:
@@ -65,11 +65,11 @@ Reference: [com.datastax.graph.MigrateData](src/main/scala/com/datastax/graph/Mi
 
 - `migrateVertices()`
 
-  This method enumerates native vertex labels, selects proper rows from legacy DGF vertices and writes them to appropriate tables.
+  This method enumerates native vertex labels, selects proper rows from classic DGF vertices and writes them to appropriate tables.
 
 - `migrateEdges()`
 
-  This method enumerates native edge labels, extracts (inLabel, edgeLabel, outLabel) triplet from it, selects proper rows from legacy DGF edges, converts edge ids into the native format and writes data to the corresponded table.
+  This method enumerates native edge labels, extracts (inLabel, edgeLabel, outLabel) triplet from it, selects proper rows from classic DGF edges, converts edge ids into the native format and writes data to the corresponded table.
 
 - `handleMultiAndMetaProperies()`
 
