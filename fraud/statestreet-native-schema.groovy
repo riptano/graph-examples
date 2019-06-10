@@ -1,8 +1,8 @@
-// This tool migrates legacy graph schema to basic native graph schema.
+// This tool migrates classic graph schema to basic core graph schema.
 // All properties are single. Multi properties are migrated as a single property.
 // Meta properties, Index and MVs are are dropped. If custom handling of meta properties 
 // and multi properties, renaming properties and dropping properties are needed, 
-// user should modify the generated native graph schema. The native graph schema can be created through cqlsh or gremlin.
+// user should modify the generated core graph schema. The core graph schema can be created through cqlsh or gremlin.
 import com.datastax.bdp.graphv2.engine.Engine
 
 system.graph('statestreet').withReplication("{ 'class' : 'org.apache.cassandra.locator.NetworkTopologyStrategy', 'SearchGraphAnalytics': '1' }").andDurableWrites(true).create()
