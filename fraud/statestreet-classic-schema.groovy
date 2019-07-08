@@ -2,7 +2,7 @@
 system.graph('statestreet').replication("{'class' : 'NetworkTopologyStrategy', 'SearchGraphAnalytics' : 1}").systemReplication("{'class' : 'NetworkTopologyStrategy', 'SearchGraphAnalytics' : 1}").engine(Classic).create()
 :remote config alias g statestreet.g
 
-schema.propertyKey('superparent_id').Int().single().ifNotExists().create()
+schema.propertyKey('superparent_id').Bigint().single().ifNotExists().create()
 schema.propertyKey('superparent_name').Text().single().ifNotExists().create()
 
 
@@ -13,48 +13,48 @@ schema.propertyKey("codeB").Text().single().ifNotExists().create()
 schema.propertyKey("vtype").Text().single().ifNotExists().create()
 schema.propertyKey("gencode").Text().single().ifNotExists().create()
 
-schema.propertyKey("parent_id").Int().single().ifNotExists().create()
+schema.propertyKey("parent_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("parent_name").Text().single().ifNotExists().create()
 schema.propertyKey("domicile").Text().single().ifNotExists().create()
 
-schema.propertyKey("referenced_parent_id").Int().single().ifNotExists().create()
-schema.propertyKey("referenced_superparent_id").Int().single().ifNotExists().create()
+schema.propertyKey("referenced_parent_id").Bigint().single().ifNotExists().create()
+schema.propertyKey("referenced_superparent_id").Bigint().single().ifNotExists().create()
 
-schema.propertyKey("semiparent_id").Int().single().ifNotExists().create()
+schema.propertyKey("semiparent_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("semiparent_name").Text().single().ifNotExists().create()
 schema.propertyKey("strategy").Text().single().ifNotExists().create()
 
-schema.propertyKey("subparent_id").Int().single().ifNotExists().create()
+schema.propertyKey("subparent_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("subparent_name").Text().single().ifNotExists().create()
 
-schema.propertyKey("topchild_id").Int().single().ifNotExists().create()
+schema.propertyKey("topchild_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("topchild_name").Text().single().ifNotExists().create()
 schema.propertyKey("family").Text().single().ifNotExists().create()
 schema.propertyKey("childvtype").Text().single().ifNotExists().create()
 
 // Information Classification: General
-schema.propertyKey("intcode").Int().single().ifNotExists().create()
+schema.propertyKey("intcode").Bigint().single().ifNotExists().create()
 schema.propertyKey("class").Text().single().ifNotExists().create()
 schema.propertyKey("region").Text().single().ifNotExists().create()
 
-schema.propertyKey("childnums_id").Int().single().ifNotExists().create()
+schema.propertyKey("childnums_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("childnums_name").Text().single().ifNotExists().create()
 schema.propertyKey("numsvtype").Text().single().ifNotExists().create()
 
-schema.propertyKey("numsyear_id").Int().single().ifNotExists().create()
+schema.propertyKey("numsyear_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("vdate").Text().single().ifNotExists().create()
 
-schema.propertyKey("numsmonth_id").Int().single().ifNotExists().create()
+schema.propertyKey("numsmonth_id").Bigint().single().ifNotExists().create()
 
-schema.propertyKey("nums_id").Int().single().ifNotExists().create()
+schema.propertyKey("nums_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("nums_name").Text().single().ifNotExists().create()
-schema.propertyKey("number").Int().single().ifNotExists().create()
+schema.propertyKey("number").Bigint().single().ifNotExists().create()
 
-schema.propertyKey("valyear_id").Int().single().ifNotExists().create()
+schema.propertyKey("valyear_id").Bigint().single().ifNotExists().create()
 
-schema.propertyKey("valmonth_id").Int().single().ifNotExists().create()
+schema.propertyKey("valmonth_id").Bigint().single().ifNotExists().create()
 
-schema.propertyKey("vals_id").Int().single().ifNotExists().create()
+schema.propertyKey("vals_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("vals_name").Text().single().ifNotExists().create()
 schema.propertyKey("value").Double().single().ifNotExists().create()
 
@@ -68,7 +68,7 @@ schema.propertyKey("connect_date").Text().single().ifNotExists().create()
 
 
 schema.propertyKey("childitem_name").Text().single().ifNotExists().create()
-schema.propertyKey("childitem_id").Int().single().ifNotExists().create()
+schema.propertyKey("childitem_id").Bigint().single().ifNotExists().create()
 schema.propertyKey("trade").Text().single().ifNotExists().create()
 
 schema.propertyKey("vvalue").Double().single().ifNotExists().create()
