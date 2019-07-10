@@ -1,10 +1,4 @@
-// This tool migrates classic graph schema to basic core graph schema.
-// All properties are single. Multi properties are migrated as a single property.
-// Meta properties, Index and MVs are are dropped. If custom handling of meta properties 
-// and multi properties, renaming properties and dropping properties are needed, 
-// user should modify the generated core graph schema. The core graph schema can be created through cqlsh or gremlin.
-import com.datastax.bdp.graphv2.engine.Engine
-
+// set RF=1 due to limited space
 system.graph('statestreet').withReplication("{ 'class' : 'org.apache.cassandra.locator.NetworkTopologyStrategy', 'SearchGraphAnalytics': '1' }").andDurableWrites(true).create()
 
 :remote config alias g statestreet.g
