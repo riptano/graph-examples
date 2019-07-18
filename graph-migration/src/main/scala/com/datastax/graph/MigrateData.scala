@@ -91,7 +91,7 @@ object MigrateData {
     val vertices = classic.V.df
 
     // vertex labels to enumerate
-    val vertexLabels: Seq[GraphKeyspace.VertexLabel] = core.graphSchema.vertexLabels().asScala.toSeq
+    val vertexLabels: Seq[GraphKeyspace.VertexLabel] = core.graphKeyspace.vertexLabels().asScala.toSeq
     val dfSchema = vertices.schema
     for (vertexLabel: GraphKeyspace.VertexLabel <- vertexLabels) {
       //prepare core vertex columns for this label
@@ -133,7 +133,7 @@ object MigrateData {
 
     val dfSchema = edges.schema
     // enumerate all edge labels, actually triplets: out_vertex_label->edge_label->in_vertex_label
-    for (edgeLabel <- core.graphSchema.edgeLabels().asScala.toSeq) {
+    for (edgeLabel <- core.graphKeyspace.edgeLabels().asScala.toSeq) {
       val outLabelName = edgeLabel.outLabel.name()
       val edgeLabelName = edgeLabel.name()
       val inLabelName = edgeLabel.inLabel.name()
