@@ -4,17 +4,13 @@
 ## Generate Core Graph Schema
 Graph Schema Migration tool creates classic graph frame. Based on classic graph frame schema, the tool generates core graph schema.
 
-There are two types of format when outputting the schema, cql and gremlin.
-Cql format schema is the CQL script to create graph keyspace and tables under cqlsh.
-Gremlin format schema is the groovy script to create core graph schema under gremlin-console or Studio.
+The generated core graph schema is formatted as a groovy script that may be used with the gremlin-console or Studio.
 
 Run the following command to output the core graph schema generation script when the DSE server is up:
 ```
-dse graph-migrate-schema [-cql | -gremlin] <classic_graph> <core_graph>
+dse graph-migrate-schema <classic_graph> <core_graph>
 ```
 
-- `-cql`: specifies the output as cql format.
-- `-gremlin`: specifies the output as gremlin format.
 - `<classic_graph>`: the name of the existing classic graph you would like to migrate from.
 - `<core_graph>`: the name of the new core graph you would like to create.
 
@@ -28,10 +24,10 @@ If custom handling of meta and multi properties is needed, users should modify t
 
 To save the generated output as a script into a file, you may run the following:
 ```
-dse graph-migrate-schema -gremlin reviewerRating nreviewerRating > core_schema.groovy
+dse graph-migrate-schema reviewerRating nreviewerRating > core_schema.groovy
 ```
 
-To create the core graph schema, pass the generated script to gremlin-console or cqlsh depending on the type of format.
+To create the core graph schema, pass the generated script to gremlin-console or studio.
 
 Example:
 ```
